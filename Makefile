@@ -1,5 +1,6 @@
 TARGET := iphone:clang:latest:12.0
 ARCHS := arm64
+
 DEBUG = 0
 FINALPACKAGE = 1
 
