@@ -33,7 +33,7 @@ jobs:
             https://github.com/theos/theos.git \
             "$HOME/theos"
 
-      - name: Install iOS SDKs
+      - name: Install iOS SDK
         run: |
           export THEOS="$HOME/theos"
 
@@ -49,7 +49,7 @@ jobs:
             -name "*.sdk" \
             -exec cp -R {} "$THEOS/sdks/" \;
 
-          echo "Installed SDKs:"
+          echo "SDKs:"
           ls -la "$THEOS/sdks"
 
       - name: Install Linux toolchain
@@ -58,19 +58,15 @@ jobs:
 
           bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
 
-      - name: Verify build environment
+      - name: Verify environment
         env:
           THEOS: /home/runner/theos
         run: |
           echo "THEOS=$THEOS"
-
-          echo "=== SDKs ==="
+          echo "SDKs:"
           ls -la "$THEOS/sdks"
 
-          echo "=== Toolchain ==="
-          ls -la "$THEOS/toolchain/linux/iphone/bin" | head -30
-
-      - name: Clean previous build
+      - name: Clean
         env:
           THEOS: /home/runner/theos
         run: |
@@ -78,42 +74,41 @@ jobs:
           rm -rf packages
           rm -rf .theos
 
-      - name: Build rootful package
+      - name: Build
         env:
           THEOS: /home/runner/theos
-          THEOS_PACKAGE_SCHEME: rootful
         run: |
           make package \
             FINALPACKAGE=1 \
             ARCHS=arm64 \
             TARGET=iphone:clang:latest:12.0
 
-      - name: Inspect generated package
+      - name: Inspect package
         run: |
-          echo "=== GENERATED DEB ==="
+          echo "=== DEB ==="
           ls -lh packages/*.deb
 
           echo
-          echo "=== DEBIAN METADATA ==="
+          echo "=== CONTROL ==="
           dpkg-deb --info packages/*.deb
 
           echo
-          echo "=== PACKAGE CONTENTS ==="
+          echo "=== CONTENTS ==="
           dpkg-deb --contents packages/*.deb
 
-      - name: Verify rootful layout
+      - name: Verify package layout
         run: |
-          if dpkg-deb --contents packages/*.deb | grep -q "./var/jb/"; then
-            echo "ERROR: Package contains rootless /var/jb/ paths."
+          if dpkg-deb --contents packages/*.deb | grep -q '/var/jb/'; then
+            echo "ERROR: Rootless /var/jb/ path detected."
             exit 1
           fi
 
-          if ! dpkg-deb --contents packages/*.deb | grep -q "./Applications/LegacyReddit.app/"; then
-            echo "ERROR: LegacyReddit.app is not installed under /Applications."
+          if ! dpkg-deb --contents packages/*.deb | grep -q '/Applications/LegacyReddit.app/'; then
+            echo "ERROR: /Applications/LegacyReddit.app was not found."
             exit 1
           fi
 
-          echo "Rootful package layout verified."
+          echo "Rootful package layout confirmed."
 
       - name: Upload DEB
         uses: actions/upload-artifact@v4
