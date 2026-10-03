@@ -15,53 +15,109 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential clang git curl wget perl fakeroot dpkg-dev xz-utils unzip
+          sudo apt-get install -y \
+            build-essential \
+            clang \
+            git \
+            curl \
+            wget \
+            perl \
+            fakeroot \
+            dpkg-dev \
+            xz-utils \
+            unzip
 
       - name: Install Theos
         run: |
-          git clone --recursive --depth=1 https://github.com/theos/theos.git "$HOME/theos"
+          git clone --recursive --depth=1 \
+            https://github.com/theos/theos.git \
+            "$HOME/theos"
 
-      - name: Install iOS SDK
+      - name: Install iOS SDKs
         run: |
           export THEOS="$HOME/theos"
+
           mkdir -p "$THEOS/sdks"
-          git clone --depth=1 https://github.com/theos/sdks.git /tmp/theos-sdks
-          cp -R /tmp/theos-sdks/*.sdk "$THEOS/sdks/"
+
+          git clone --depth=1 \
+            https://github.com/theos/sdks.git \
+            /tmp/theos-sdks
+
+          find /tmp/theos-sdks \
+            -maxdepth 1 \
+            -type d \
+            -name "*.sdk" \
+            -exec cp -R {} "$THEOS/sdks/" \;
+
           echo "Installed SDKs:"
           ls -la "$THEOS/sdks"
 
-      - name: Install Theos Linux toolchain
+      - name: Install Linux toolchain
         run: |
           export THEOS="$HOME/theos"
+
           bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
 
-      - name: Show build environment
-        run: |
-          export THEOS="$HOME/theos"
-          echo "THEOS=$THEOS"
-          echo "SDKs:"
-          ls -la "$THEOS/sdks"
-          echo "Toolchain:"
-          ls -la "$THEOS/toolchain/linux/iphone/bin" | head
-
-      - name: Build
+      - name: Verify build environment
         env:
           THEOS: /home/runner/theos
         run: |
-          make package FINALPACKAGE=1 \
+          echo "THEOS=$THEOS"
+
+          echo "=== SDKs ==="
+          ls -la "$THEOS/sdks"
+
+          echo "=== Toolchain ==="
+          ls -la "$THEOS/toolchain/linux/iphone/bin" | head -30
+
+      - name: Clean previous build
+        env:
+          THEOS: /home/runner/theos
+        run: |
+          make clean || true
+          rm -rf packages
+          rm -rf .theos
+
+      - name: Build rootful package
+        env:
+          THEOS: /home/runner/theos
+          THEOS_PACKAGE_SCHEME: rootful
+        run: |
+          make package \
+            FINALPACKAGE=1 \
             ARCHS=arm64 \
             TARGET=iphone:clang:latest:12.0
 
-      - name: Verify DEB
+      - name: Inspect generated package
         run: |
+          echo "=== GENERATED DEB ==="
           ls -lh packages/*.deb
+
+          echo
+          echo "=== DEBIAN METADATA ==="
           dpkg-deb --info packages/*.deb
+
+          echo
+          echo "=== PACKAGE CONTENTS ==="
           dpkg-deb --contents packages/*.deb
+
+      - name: Verify rootful layout
+        run: |
+          if dpkg-deb --contents packages/*.deb | grep -q "./var/jb/"; then
+            echo "ERROR: Package contains rootless /var/jb/ paths."
+            exit 1
+          fi
+
+          if ! dpkg-deb --contents packages/*.deb | grep -q "./Applications/LegacyReddit.app/"; then
+            echo "ERROR: LegacyReddit.app is not installed under /Applications."
+            exit 1
+          fi
+
+          echo "Rootful package layout verified."
 
       - name: Upload DEB
         uses: actions/upload-artifact@v4
         with:
-          name: LegacyReddit-iOS12-arm64
+          name: LegacyReddit-iOS12-rootful-arm64
           path: packages/*.deb
           if-no-files-found: error
-          
