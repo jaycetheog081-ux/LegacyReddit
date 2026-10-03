@@ -1,0 +1,67 @@
+name: Build Legacy Reddit
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang git curl wget perl fakeroot dpkg-dev xz-utils unzip
+
+      - name: Install Theos
+        run: |
+          git clone --recursive --depth=1 https://github.com/theos/theos.git "$HOME/theos"
+
+      - name: Install iOS SDK
+        run: |
+          export THEOS="$HOME/theos"
+          mkdir -p "$THEOS/sdks"
+          git clone --depth=1 https://github.com/theos/sdks.git /tmp/theos-sdks
+          cp -R /tmp/theos-sdks/*.sdk "$THEOS/sdks/"
+          echo "Installed SDKs:"
+          ls -la "$THEOS/sdks"
+
+      - name: Install Theos Linux toolchain
+        run: |
+          export THEOS="$HOME/theos"
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
+
+      - name: Show build environment
+        run: |
+          export THEOS="$HOME/theos"
+          echo "THEOS=$THEOS"
+          echo "SDKs:"
+          ls -la "$THEOS/sdks"
+          echo "Toolchain:"
+          ls -la "$THEOS/toolchain/linux/iphone/bin" | head
+
+      - name: Build
+        env:
+          THEOS: /home/runner/theos
+        run: |
+          make package FINALPACKAGE=1 \
+            ARCHS=arm64 \
+            TARGET=iphone:clang:latest:12.0
+
+      - name: Verify DEB
+        run: |
+          ls -lh packages/*.deb
+          dpkg-deb --info packages/*.deb
+          dpkg-deb --contents packages/*.deb
+
+      - name: Upload DEB
+        uses: actions/upload-artifact@v4
+        with:
+          name: LegacyReddit-iOS12-arm64
+          path: packages/*.deb
+          if-no-files-found: error
+          
