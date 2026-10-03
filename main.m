@@ -96,7 +96,26 @@
     return cell;
 }
 
-- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+- (void)tableView:(UITableView *)- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    LRPost *post = self.posts[indexPath.row];
+    NSString *urlString = [NSString stringWithFormat:@"https://www.reddit.com%@", post.permalink];
+    NSURL *url = [NSURL URLWithString:urlString];
+
+    if (url != nil) {
+        if (@available(iOS 10.0, *)) {
+            [[UIApplication sharedApplication] openURL:url
+                                               options:@{}
+                                     completionHandler:nil];
+        } else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+            [[UIApplication sharedApplication] openURL:url];
+#pragma clang diagnostic pop
+        }
+    }
+
+    [tableView deselectRowAtIndexPath:indexPath animated:YES];
+}(NSIndexPath *)indexPath {
     LRPost *post = self.posts[indexPath.row];
     NSString *urlString = [NSString stringWithFormat:@"https://www.reddit.com%@", post.permalink];
     NSURL *url = [NSURL URLWithString:urlString];
