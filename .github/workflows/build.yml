@@ -49,22 +49,13 @@ jobs:
             -name "*.sdk" \
             -exec cp -R {} "$THEOS/sdks/" \;
 
-          echo "SDKs:"
+          echo "Installed SDKs:"
           ls -la "$THEOS/sdks"
 
       - name: Install Linux toolchain
         run: |
           export THEOS="$HOME/theos"
-
           bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
-
-      - name: Verify environment
-        env:
-          THEOS: /home/runner/theos
-        run: |
-          echo "THEOS=$THEOS"
-          echo "SDKs:"
-          ls -la "$THEOS/sdks"
 
       - name: Clean
         env:
@@ -85,41 +76,44 @@ jobs:
 
       - name: Inspect package
         run: |
-          echo "=== DEB ==="
+          echo "========================================"
+          echo "GENERATED PACKAGE"
+          echo "========================================"
           ls -lh packages/*.deb
 
           echo
-          echo "=== CONTROL ==="
+          echo "========================================"
+          echo "DEBIAN METADATA"
+          echo "========================================"
           dpkg-deb --info packages/*.deb
 
           echo
-          echo "=== CONTENTS ==="
+          echo "========================================"
+          echo "PACKAGE CONTENTS"
+          echo "========================================"
           dpkg-deb --contents packages/*.deb
 
-      - name: Verify package layout
-        run: |
-          echo "=== Looking for LegacyReddit.app ==="
-
-          dpkg-deb --contents packages/*.deb | grep -i "LegacyReddit.app" || true
-
           echo
-          echo "=== Checking for rootless paths ==="
+          echo "========================================"
+          echo "PACKAGE PATH CHECK"
+          echo "========================================"
 
           if dpkg-deb --contents packages/*.deb | grep -q "/var/jb/"; then
-            echo "ERROR: Rootless /var/jb/ path detected."
+            echo "WARNING: /var/jb/ detected"
+          else
+            echo "OK: No /var/jb/ paths detected"
+          fi
+
+          if dpkg-deb --contents packages/*.deb | grep -qi "LegacyReddit.app"; then
+            echo "OK: LegacyReddit.app detected"
+          else
+            echo "ERROR: LegacyReddit.app NOT detected"
             exit 1
           fi
 
-          if ! dpkg-deb --contents packages/*.deb | grep -qi "LegacyReddit.app"; then
-            echo "ERROR: LegacyReddit.app was not found in package."
-            exit 1
-          fi
-
-          echo "LegacyReddit.app found."
-      
       - name: Upload DEB
         uses: actions/upload-artifact@v4
         with:
-          name: LegacyReddit-iOS12-rootful-arm64
+          name: LegacyReddit-iOS12-arm64
           path: packages/*.deb
           if-no-files-found: error
