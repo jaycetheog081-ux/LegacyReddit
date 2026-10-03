@@ -11,8 +11,6 @@ APPLICATION_NAME := LegacyReddit
 LegacyReddit_FILES := main.m
 LegacyReddit_FRAMEWORKS := UIKit Foundation
 LegacyReddit_CFLAGS := -fobjc-arc
-LegacyReddit_INSTALL_PATH := /Applications
-LegacyReddit_CODESIGN_FLAGS := -Sentitlements.plist
 
 include $(THEOS_MAKE_PATH)/application.mk
 
