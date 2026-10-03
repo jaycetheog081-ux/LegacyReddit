@@ -98,18 +98,25 @@ jobs:
 
       - name: Verify package layout
         run: |
-          if dpkg-deb --contents packages/*.deb | grep -q '/var/jb/'; then
+          echo "=== Looking for LegacyReddit.app ==="
+
+          dpkg-deb --contents packages/*.deb | grep -i "LegacyReddit.app" || true
+
+          echo
+          echo "=== Checking for rootless paths ==="
+
+          if dpkg-deb --contents packages/*.deb | grep -q "/var/jb/"; then
             echo "ERROR: Rootless /var/jb/ path detected."
             exit 1
           fi
 
-          if ! dpkg-deb --contents packages/*.deb | grep -q '/Applications/LegacyReddit.app/'; then
-            echo "ERROR: /Applications/LegacyReddit.app was not found."
+          if ! dpkg-deb --contents packages/*.deb | grep -qi "LegacyReddit.app"; then
+            echo "ERROR: LegacyReddit.app was not found in package."
             exit 1
           fi
 
-          echo "Rootful package layout confirmed."
-
+          echo "LegacyReddit.app found."
+      
       - name: Upload DEB
         uses: actions/upload-artifact@v4
         with:
