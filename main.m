@@ -101,7 +101,16 @@
     NSString *urlString = [NSString stringWithFormat:@"https://www.reddit.com%@", post.permalink];
     NSURL *url = [NSURL URLWithString:urlString];
     if ([[UIApplication sharedApplication] canOpenURL:url])
-        [[UIApplication sharedApplication] openURL:url];
+        if (@available(iOS 10.0, *)) {
+    [[UIApplication sharedApplication] openURL:url
+                                      options:@{}
+                            completionHandler:nil];
+} else {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+    [[UIApplication sharedApplication] openURL:url];
+#pragma clang diagnostic pop
+}
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
 }
 @end
