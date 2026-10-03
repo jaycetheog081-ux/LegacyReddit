@@ -26,3 +26,4 @@ jobs:
         with:
           name: LegacyReddit-iOS12
           path: packages/*.deb
+
