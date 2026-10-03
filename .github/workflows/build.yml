@@ -1,18 +1,11 @@
-```yaml
 name: Build Legacy Reddit
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
 
 jobs:
   build:
     runs-on: ubuntu-24.04
-
-    permissions:
-      contents: read
 
     steps:
       - name: Checkout
@@ -21,58 +14,20 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            clang \
-            git \
-            curl \
-            wget \
-            perl \
-            fakeroot \
-            dpkg-dev \
-            lzma \
-            xz-utils \
-            libio-compress-lzma-perl
+          sudo apt-get install -y build-essential clang git curl wget perl fakeroot dpkg-dev xz-utils
 
       - name: Install Theos
         run: |
-          git clone --recursive --depth=1 \
-            https://github.com/theos/theos.git \
-            "$HOME/theos"
-
+          git clone --recursive --depth=1 https://github.com/theos/theos.git "$HOME/theos"
           echo "THEOS=$HOME/theos" >> "$GITHUB_ENV"
 
-      - name: Install iOS toolchain
+      - name: Build
         run: |
           export THEOS="$HOME/theos"
-
-          bash -c "$(curl -fsSL \
-            https://raw.githubusercontent.com/theos/theos/master/bin/install-theos)"
-
-      - name: Build Legacy Reddit
-        run: |
-          export THEOS="$HOME/theos"
-
-          make clean || true
-
-          make package FINALPACKAGE=1 \
-            ARCHS=arm64 \
-            TARGET=iphone:clang:latest:12.0
-
-      - name: Show package
-        run: |
-          echo "Built packages:"
-          ls -lh packages/
-
-      - name: Verify package
-        run: |
-          dpkg-deb --info packages/*.deb
-          dpkg-deb --contents packages/*.deb
+          make package FINALPACKAGE=1 ARCHS=arm64 TARGET=iphone:clang:latest:12.0
 
       - name: Upload DEB
         uses: actions/upload-artifact@v4
         with:
-          name: LegacyReddit-iOS12-arm64-deb
+          name: LegacyReddit-iOS12
           path: packages/*.deb
-          if-no-files-found: error
-```
