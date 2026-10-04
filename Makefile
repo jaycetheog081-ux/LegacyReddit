@@ -1,18 +1,23 @@
-TARGET := iphone:clang:latest:12.0
-ARCHS := arm64
-
-DEBUG = 0
-FINALPACKAGE = 1
+ARCHS = arm64
+TARGET = iphone:clang:latest:11.0
 
 include $(THEOS)/makefiles/common.mk
 
-APPLICATION_NAME := LegacyReddit
+APPLICATION_NAME = LegacyReddit
 
-LegacyReddit_FILES := main.m
-LegacyReddit_FRAMEWORKS := UIKit Foundation
-LegacyReddit_CFLAGS := -fobjc-arc
+LegacyReddit_FILES = \
+    main.mm \
+    LegacyRedditApp.mm
+
+LegacyReddit_FRAMEWORKS = \
+    UIKit \
+    Foundation \
+    SafariServices
+
+LegacyReddit_CFLAGS = \
+    -fobjc-arc \
+    -Wno-deprecated-declarations
+
+LegacyReddit_INFO_PLIST = Info.plist
 
 include $(THEOS_MAKE_PATH)/application.mk
-
-after-install::
-	install.exec "uicache -p /Applications/LegacyReddit.app || true"
